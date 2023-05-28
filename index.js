@@ -17,7 +17,7 @@ for (const file of commandFiles) {
 	commands.push(command.data.toJSON());
   client.commands.set(command.data.name, command);
 }
-const rest = new REST({ version: '10' }).setToken(TOKEN_ENV);
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN_ENV);
 /*
 function randomarray(a) { //배열값에서 랜덤으로 값 하나를 가져오는 함수
   return a[Math.floor(Math.random() * a.length)];
@@ -54,4 +54,4 @@ client.on('messageCreate', async msg => {
  }
 })
 
-client.login(TOKEN_ENV)
+client.login(process.env.TOKEN_ENV)
