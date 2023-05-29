@@ -86,7 +86,7 @@ module.exports = {
             exampleEmbed.addFields({name: ' ' , value:`\`\`해당 채팅에 대한 처벌이 가결되었습니다.\`\`\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}`})
             let member = await interaction.guild.members.fetch(msg.author.id);
             try {
-              await member.timeout(60000 * 5); // 1분 동안 타임아웃
+              await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
             } catch (error) {
               exampleEmbed.addFields({name: ' ' , value:`\`\`그러나 권한 부족으로 타임아웃 할 수 없습니다.\`\``});
             }
