@@ -69,6 +69,7 @@ module.exports = {
         console.log(vtMember);
       })
       
+      vton = false;
 			collector.on('end', async (collect) => {
         const exampleEmbed = new EmbedBuilder()
           .setColor('FF0000')
@@ -97,6 +98,7 @@ module.exports = {
           await interaction.editReply({ embeds: [exampleEmbed] , components: [] })
         } catch {
           console.log('메세지가 삭제됨');
+          vton = false;
         }
         
         vton = false;
