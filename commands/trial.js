@@ -29,7 +29,7 @@ module.exports = {
           { name: `\u200B`, value: `해당 채팅에 대한 약식 재판을 시작합니다.\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}` },
           { name: '찬성표', value: String(vtA), inline: true },
           { name: '반대표', value: String(vtB), inline: true },)
-        .setFooter({ text: '20초 후에 재판의 결과가 발표됩니다.' })
+        .setFooter({ text: '1분 후에 재판의 결과가 발표됩니다.' })
         .setTimestamp();
       const row = new ActionRowBuilder()
         .addComponents(
@@ -50,7 +50,7 @@ module.exports = {
 
       const collector = interaction.channel.createMessageComponentCollector({
         //몇 초동안 반응 할 수 있는지
-        time: 10000
+        time: 100000
       });
       collector.on('collect', async (interaction) => {
         if(vtMember.indexOf(interaction.user.id) != -1){ // 버튼 눌렀을때
@@ -86,7 +86,7 @@ module.exports = {
             exampleEmbed.addFields({name: ' ' , value:`\`\`해당 채팅에 대한 처벌이 가결되었습니다.\`\`\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}`})
             let member = await interaction.guild.members.fetch(msg.author.id);
             try {
-              await member.timeout(60000); // 1분 동안 타임아웃
+              await member.timeout(60000 * 5); // 1분 동안 타임아웃
             } catch (error) {
               exampleEmbed.addFields({name: ' ' , value:`\`\`그러나 권한 부족으로 타임아웃 할 수 없습니다.\`\``});
             }
