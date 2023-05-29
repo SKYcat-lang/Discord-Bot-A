@@ -1,5 +1,5 @@
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
-const client = new Client({ intents: [GatewayIntentBits.Guilds], partials: [Partials.Channel] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages], partials: [Partials.Channel] });
 const { REST, Routes } = require('discord.js');
 
 const {clientId, prefix, TOKEN} = require('./Config.json');
@@ -29,6 +29,9 @@ function randomNum(min, max){ //랜덤한 숫자를 정수단위로 뽑아주는
 */
 client.once('ready', async () => {
   console.log('디스코드 봇이 공산주의에 감화되었습니다.')
+  //client.application.commands.fetch().then(commands => {
+  //  console.log(commands);
+  //});
   const data = await rest.put(
           Routes.applicationCommands(clientId),
           { body: commands },
@@ -45,13 +48,6 @@ client.on('interactionCreate',async interaction => {
       console.log("error\n"+error)
       
   }
-})
-client.on('messageCreate', async msg => {
- if(msg.content == "가나다테스트"){
-  var taget = client.channels.cache.get(msg.channelId);
-  console.log(taget)
-  taget.send("a")
- }
 })
 
 client.login(process.env.TOKEN_ENV)
