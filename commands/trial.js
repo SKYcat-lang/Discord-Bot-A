@@ -64,6 +64,8 @@ module.exports = {
         else if(interaction.customId == msg.id+'no'){ // 버튼 눌렀을때
           vtB++
         }
+        embed.fields[1].value = String(vtA); // 찬성표 값 업데이트
+        embed.fields[2].value = String(vtB); // 반대표 값 업데이트
         interaction.editReply({ embeds: [embed] , components: [row]});
         await interaction.reply({ content: '투표했습니다.', ephemeral: true });
         vtMember.push(interaction.user.id);
