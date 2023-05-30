@@ -46,7 +46,7 @@ module.exports = {
             .setStyle(ButtonStyle.Danger),
         );
 
-      await interaction.reply({ embeds: [embed] , components: [row]});
+      await interaction.editReply({ embeds: [embed] , components: [row]});
       
 
       const collector = interaction.channel.createMessageComponentCollector({
