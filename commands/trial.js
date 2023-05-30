@@ -20,6 +20,7 @@ module.exports = {
         return;
       }
       vton = true;
+      await interaction.deferReply();
       const embed = new EmbedBuilder()
 	      .setColor('FF0000')
         .setDescription(msg.content)
