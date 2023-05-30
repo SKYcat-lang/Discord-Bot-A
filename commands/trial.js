@@ -24,6 +24,7 @@ module.exports = {
         return;
       }
       vton = true;
+      await interaction.deferReply();
       const embed = new EmbedBuilder()
 	      .setColor('FF0000')
         .setDescription(msg.content)
@@ -31,8 +32,7 @@ module.exports = {
         .setThumbnail('https://i.ibb.co/t4V5qsf/star-icon.png')
 	      .addFields(
           { name: `\u200B`, value: `해당 채팅에 대한 약식 재판을 시작합니다.\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}` },
-          { name: '찬성표', value: String(vtA), inline: true },
-          { name: '반대표', value: String(vtB), inline: true },)
+)
         .setFooter({ text: '1분 후에 재판의 결과가 발표됩니다.' })
         .setTimestamp();
       const row = new ActionRowBuilder()
@@ -49,7 +49,7 @@ module.exports = {
             .setStyle(ButtonStyle.Danger),
         );
 
-      await interaction.reply({ embeds: [embed] , components: [row]});
+      await interaction.editReply({ embeds: [embed] , components: [row]});
       
 
       const collector = interaction.channel.createMessageComponentCollector({
