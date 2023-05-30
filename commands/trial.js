@@ -27,7 +27,8 @@ module.exports = {
         .setAuthor({ name: `${msg.author.username}`, iconURL: avatarURL })
         .setThumbnail('https://i.ibb.co/t4V5qsf/star-icon.png')
 	      .addFields(
-          { name: `\u200B`, value: `해당 채팅에 대한 약식 재판을 시작합니다.\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}` },)
+          { name: `\u200B`, value: `해당 채팅에 대한 약식 재판을 시작합니다.\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}` },
+)
         .setFooter({ text: '1분 후에 재판의 결과가 발표됩니다.' })
         .setTimestamp();
       const row = new ActionRowBuilder()
