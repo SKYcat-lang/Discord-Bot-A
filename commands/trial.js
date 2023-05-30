@@ -75,7 +75,7 @@ module.exports = {
           { name: '반대표', value: String(vtB), inline: true },)
         .setFooter({ text: '1분 후에 재판의 결과가 발표됩니다.' })
         .setTimestamp();
-        interaction.editReply({ embeds: [embed] , components: [row]});
+        await interaction.editReply({ embeds: [embed] , components: [row]});
         await interaction.reply({ content: '투표했습니다.', ephemeral: true });
         vtMember.push(interaction.user.id);
         console.log(interaction.user.id);
