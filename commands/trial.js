@@ -6,6 +6,10 @@ module.exports = {
       .setType(ApplicationCommandType.Message),
 
     async execute(interaction){
+      if (!interaction.inGuild()) {
+        await interaction.reply({ content: '개인 메세지에서는 이 커맨드를 사용할 수 없습니다.', ephemeral: true });
+        return;
+      }
       let vtMember = [];
       let vtA = 0;
       let vtB = 0;
@@ -69,7 +73,6 @@ module.exports = {
         console.log(vtMember);
       })
       
-      vton = false;
 			collector.on('end', async (collect) => {
         const exampleEmbed = new EmbedBuilder()
           .setColor('FF0000')
@@ -86,11 +89,18 @@ module.exports = {
 				  if(vtA > vtB && vtA > 2){
             exampleEmbed.addFields({name: ' ' , value:`\`\`해당 채팅에 대한 처벌이 가결되었습니다.\`\`\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}`})
             let member = await interaction.guild.members.fetch(msg.author.id);
+            
             try {
               await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
             } catch (error) {
               exampleEmbed.addFields({name: ' ' , value:`\`\`그러나 권한 부족으로 타임아웃 할 수 없습니다.\`\``});
             }
+
+            if (interaction.guildId == '1032984214066434159') { //서버 확인
+              const channel = await interaction.guild.channels.fetch('1113078102998925352');
+              channel.send({ embeds: [exampleEmbed] , components: [] });
+            }
+
           } else {
             exampleEmbed.addFields({name: ' ' , value:`\`\`해당 안건이 부결되었습니다.\`\``})
           }
