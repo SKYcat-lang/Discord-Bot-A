@@ -64,6 +64,7 @@ module.exports = {
         else if(interaction.customId == msg.id+'no'){ // 버튼 눌렀을때
           vtB++
         }
+        interaction.editReply({ embeds: [embed] , components: [row]});
         await interaction.reply({ content: '투표했습니다.', ephemeral: true });
         vtMember.push(interaction.user.id);
         console.log(interaction.user.id);
