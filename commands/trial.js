@@ -62,20 +62,25 @@ module.exports = {
         time: 90000
       });
       collector.on('collect', async (interaction) => {
-        if(vtMember.indexOf(interaction.user.id) != -1){ // 버튼 눌렀을때
-          await interaction.reply({ content: '당신은 이미 투표했습니다.', ephemeral: true });
-          return;
+        try {
+          if(vtMember.indexOf(interaction.user.id) != -1){ // 버튼 눌렀을때
+            await interaction.reply({ content: '당신은 이미 투표했습니다.', ephemeral: true });
+            return;
+          }
+          if(interaction.customId == msg.id+'yes'){ // 버튼 눌렀을때
+            vtA++
+          }
+          else if(interaction.customId == msg.id+'no'){ // 버튼 눌렀을때
+            vtB++
+          }
+          await interaction.reply({ content: '투표했습니다.', ephemeral: true });
+          vtMember.push(interaction.user.id);
+          console.log(interaction.user.id);
+          console.log(vtMember);
+        } catch(error){
+          console.log(error);
+          vton = false;
         }
-        if(interaction.customId == msg.id+'yes'){ // 버튼 눌렀을때
-          vtA++
-        }
-        else if(interaction.customId == msg.id+'no'){ // 버튼 눌렀을때
-          vtB++
-        }
-        await interaction.reply({ content: '투표했습니다.', ephemeral: true });
-        vtMember.push(interaction.user.id);
-        console.log(interaction.user.id);
-        console.log(vtMember);
       })
       
 			collector.on('end', async (collect) => {
