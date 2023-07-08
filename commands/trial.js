@@ -33,7 +33,7 @@ module.exports = {
         .setThumbnail('https://i.ibb.co/t4V5qsf/star-icon.png')
 	      .addFields(
           { name: `\u200B`, value: `해당 채팅에 대한 약식 재판을 시작합니다.\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}` },
-)
+        )
         .setFooter({ text: '1분 30초 후에 재판의 결과가 발표됩니다.' })
         .setTimestamp();
       const row = new ActionRowBuilder()
@@ -49,8 +49,12 @@ module.exports = {
             .setLabel('반대')
             .setStyle(ButtonStyle.Danger),
         );
-
-      await interaction.editReply({ embeds: [embed] , components: [row]});
+      try {
+        await interaction.editReply({ embeds: [embed] , components: [row]});
+      } catch (error){
+        console.log(error);
+        vton = false;
+      }
       
 
       const collector = interaction.channel.createMessageComponentCollector({
