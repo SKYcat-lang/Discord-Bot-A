@@ -7,6 +7,6 @@ module.exports = {
     async execute(interaction){
       const msg = interaction.targetMessage;
       msg.pin();
-      await interaction.reply('메세지가 고정되었습니다.');
+      await interaction.reply(`채팅이 고정되었습니다. https://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}`);
     }
 }
