@@ -59,7 +59,7 @@ module.exports = {
 
       const collector = interaction.channel.createMessageComponentCollector({
         //몇 초동안 반응 할 수 있는지
-        time: 5000
+        time: 90000
       });
       collector.on('collect', async (interaction) => {
         try {
@@ -96,7 +96,7 @@ module.exports = {
           .setFooter({ text: '투표가 끝났습니다.' })
           .setTimestamp();
 
-				  if(vtA > vtB && vtA > 0){
+				  if(vtA > vtB && vtA > 2){
             let member = await interaction.guild.members.fetch(msg.author.id);
             let credit = Number((vtA-1)*(-1));
             exampleEmbed.addFields({name: ' ' , value:`\`\`해당 채팅에 대한 처벌이 가결되었습니다. (소셜 크레딧 ${credit*(-1)} 차감)\`\`\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}`})
