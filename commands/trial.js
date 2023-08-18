@@ -59,7 +59,7 @@ module.exports = {
 
       const collector = interaction.channel.createMessageComponentCollector({
         //몇 초동안 반응 할 수 있는지
-        time: 90000
+        time: 5000
       });
       collector.on('collect', async (interaction) => {
         try {
