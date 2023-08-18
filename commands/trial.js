@@ -108,6 +108,18 @@ module.exports = {
             }
 
             if (interaction.guildId == '1032984214066434159') { //서버 확인
+
+              try {
+                axios.post('https://port-0-api-otjl2clhuho5p6.sel4.cloudtype.app/initialize', { id: msg.author.id, credit }, {
+                    headers: {
+                        'Authorization': 'QWl0c3VraSBOYWt1cnU',
+                        'Content-Type': 'application/json'
+                    }
+                })
+              } catch (error) {
+                exampleEmbed.addFields({name: ' ' , value:`\`\`크레딧 차감에 문제가 있는 대상입니다.\`\``});
+              }
+
               const channel = await interaction.guild.channels.fetch('1113078102998925352');
               channel.send({ embeds: [exampleEmbed] , components: [] });
             }
