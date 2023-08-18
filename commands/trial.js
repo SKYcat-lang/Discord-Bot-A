@@ -101,18 +101,6 @@ module.exports = {
             let credit = Number((vtA-1)*(-1));
             exampleEmbed.addFields({name: ' ' , value:`\`\`해당 채팅에 대한 처벌이 가결되었습니다. (소셜 크레딧 ${credit*(-1)} 차감)\`\`\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}`})
 
-            if (interaction.guildId == '1032984214066434159') { //서버 확인
-              try {
-                axios.post('https://port-0-api-otjl2clhuho5p6.sel4.cloudtype.app/initialize', { id: msg.author.id, credit }, {
-                    headers: {
-                        'Authorization': 'QWl0c3VraSBOYWt1cnU',
-                        'Content-Type': 'application/json'
-                    }
-                })
-              } catch (error) {
-                exampleEmbed.addFields({name: ' ' , value:`\`\`크레딧 차감에 문제가 있는 대상입니다.\`\``});
-              }
-            }
             try {
               await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
             } catch (error) {
