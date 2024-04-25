@@ -1,22 +1,22 @@
 {
-  "name": "discordbot",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "keywords": [],
-  "dependencies": {
-    "@discordjs/rest": "^1.7.1",
-    "axios": "^1.4.0",
-    "discord-api-types": "^0.37.42",
-    "discord.js": "^14.11.0",
-    "fs": "^0.0.1-security"
-  },
-  "devDependencies": {},
-  "description": ""
+    "name": "discordbot",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon --experimental-modules index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "keywords": [],
+    "dependencies": {
+        "@discordjs/rest": "^1.7.1",
+        "axios": "^1.4.0",
+        "discord-api-types": "^0.37.42",
+        "discord.js": "^14.14.1",
+        "fs": "0.0.1-security"
+    },
+    "description": ""
 }
