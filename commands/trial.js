@@ -115,6 +115,7 @@ export const execute = async (interaction) => {
             exampleEmbed.addFields({ name: ' ', value: `\`\`해당 안건이 부결되었습니다.\`\`` })
         }
         try {
+            console.log(msg.id,"의 재판이 종료됨.");
             await interaction.editReply({ embeds: [exampleEmbed], components: [] })
         } catch(error) {
             console.error('메세지가 삭제됨', error);
