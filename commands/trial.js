@@ -107,8 +107,8 @@ export const execute = async (interaction) => {
             try {
                 await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
             } catch (error) {
-                exampleEmbed.addFields({ name: ' ', value: `\`\`그러나 권한 부족으로 타임아웃 할 수 없습니다.\`\`` });
                 console.error('타임아웃 에러', error);
+                exampleEmbed.addFields({ name: ' ', value: `\`\`그러나 권한 부족으로 타임아웃 할 수 없습니다.\`\`` });
             }
 
         } else {
