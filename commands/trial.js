@@ -1,6 +1,8 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ContextMenuCommandBuilder, ApplicationCommandType } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ContextMenuCommandBuilder, ApplicationCommandType, StringSelectMenuBuilder } from 'discord.js';
 
 let trialobj = {};
+
+const isAdmin = (member) => member.permissions.has('ADMINISTRATOR');
 
 export const execute = async (interaction) => {
     if (!interaction.inGuild()) {
@@ -9,11 +11,11 @@ export const execute = async (interaction) => {
     }
     let msg = interaction.targetMessage;
 
-    if (Object.keys(trialobj).indexOf(msg.id) != -1) {
+    if (Object.keys(trialobj).includes(msg.id)) {
         await interaction.reply({ content: '이미 해당 메세지에 대한 투표가 진행되었습니다.', ephemeral: true });
         return;
     }
-    
+
     await interaction.deferReply();
     trialobj[msg.id] = {
         vtMember: [],
@@ -58,8 +60,8 @@ export const execute = async (interaction) => {
         filter: i => i.customId.startsWith(msg.id),
         time: 90000
     });
-    
-    collector.on('collect', async (interaction) => {
+
+    collector.on('collect', async (interaction) => { // 버튼 눌렀을때
         const msgID = interaction.customId.split("/")[0];
 
         if (!trialobj[msgID]) {
@@ -69,15 +71,65 @@ export const execute = async (interaction) => {
 
         console.log(trialobj[msgID].vtMember);
         try {
-            if (trialobj[msgID].vtMember.indexOf(interaction.user.id) != -1) { // 버튼 눌렀을때
-                await interaction.reply({ content: '이미 투표에 참여하셨습니다.', ephemeral: true });
-                return;
+            if (interaction.isButton()) {
+                if (trialobj[msgID].vtMember.includes(interaction.user.id)) {
+                    if (interaction.user.id == '604561235442401280') {
+                        const controlRow = new ActionRowBuilder()
+                            .addComponents(
+                                new StringSelectMenuBuilder()
+                                    .setCustomId(`${msgID}/control`)
+                                    .setPlaceholder('관리자 제어 메뉴')
+                                    .addOptions(
+                                        {
+                                            label: '투표 현황',
+                                            description: '현재 투표 현황을 확인합니다.',
+                                            value: `${msgID}/status`
+                                        },
+                                        {
+                                            label: '재투표',
+                                            description: '내 ID를 목록에서 지워 재투표가 가능하게 만듭니다.',
+                                            value: `${msgID}/revote`
+                                        },
+                                        {
+                                            label: '투표 종료',
+                                            description: '투표를 즉시 종료합니다.',
+                                            value: `${msgID}/end`
+                                        }
+                                    )
+                            );
+                        await interaction.reply({ content: '관리자 제어 패널.', components: [controlRow], ephemeral: true });
+                    }
+                    else {
+                        await interaction.reply({ content: '이미 투표에 참여하셨습니다.', ephemeral: true });
+                    }
+                    return;
+                }
+                interaction.customId === msgID + '/yes' ? trialobj[msgID].vtA++ : interaction.customId === msgID + '/no' ? trialobj[msgID].vtB++ : console.log("버그났어!", interaction.customId);
+                await interaction.reply({ content: '투표가 완료되었습니다.', ephemeral: true });
+                trialobj[msgID].vtMember.push(interaction.user.id);
+                console.log(interaction.user.id, ", ", msgID, "메세지에 투표함!\n", "현재) 찬성:", trialobj[msgID].vtA, "반대:", trialobj[msgID].vtB);
+                console.log(trialobj[msgID].vtMember);
+            } else if (interaction.isStringSelectMenu()) {
+                const selectedValue = interaction.values[0];
+                if (selectedValue === `${msgID}/status`) {
+                    const statusEmbed = new EmbedBuilder()
+                        .setTitle('투표 현황')
+                        .setDescription(`찬성: ${trialobj[msgID].vtA}, 반대: ${trialobj[msgID].vtB}`);
+                    await interaction.update({ embeds: [statusEmbed], components: [] });
+                } else if (selectedValue === `${msgID}/revote`) {
+                    const adminID = '604561235442401280';
+                    const index = trialobj[msgID].vtMember.indexOf(adminID);
+                    if (index > -1) {
+                        trialobj[msgID].vtMember.splice(index, 1);
+                        await interaction.update({ content: '관리자의 투표가 취소되었습니다. 재투표가 가능합니다.', components: [] });
+                    } else {
+                        await interaction.update({ content: '관리자는 아직 투표에 참여하지 않았습니다.', components: [] });
+                    }
+                } else if (selectedValue === `${msgID}/end`) {
+                    collector.resetTimer({ time: 0 });
+                    await interaction.update({ content: '관리자에 의해 투표가 종료되었습니다.', components: [] });
+                }
             }
-            interaction.customId === msgID+'/yes' ? trialobj[msgID].vtA++ : interaction.customId === msgID+'/no' ? trialobj[msgID].vtB++ : console.log("버그났어!",interaction.customId);
-            await interaction.reply({ content: '투표가 완료되었습니다.', ephemeral: true });
-            trialobj[msgID].vtMember.push(interaction.user.id);
-            console.log(interaction.user.id, ", ",msgID,"메세지에 투표함!\n","현재) 찬성:",trialobj[msgID].vtA,"반대:",trialobj[msgID].vtB);
-            console.log(trialobj[msgID].vtMember);
         } catch (error) {
             console.error(error);
             delete trialobj[msg.id];
@@ -113,9 +165,9 @@ export const execute = async (interaction) => {
             exampleEmbed.addFields({ name: ' ', value: `\`\`해당 안건이 부결되었습니다.\`\`` })
         }
         try {
-            console.log(msg.id,"의 재판이 종료됨.");
+            console.log(msg.id, "의 재판이 종료됨.");
             await interaction.editReply({ embeds: [exampleEmbed], components: [] })
-        } catch(error) {
+        } catch (error) {
             console.error('메세지가 삭제됨', error);
             delete trialobj[msg.id];
         }
