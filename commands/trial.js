@@ -9,10 +9,6 @@ export const execute = async (interaction) => {
     }
     let msg = interaction.targetMessage;
 
-    if (msg.content == '') {
-        await interaction.reply({ content: '메세지 내용이 존재하지 않습니다. 따라서, 약식 재판을 시작할 수 없습니다.', ephemeral: true });
-        return;
-    }
     if (Object.keys(trialobj).indexOf(msg.id) != -1) {
         await interaction.reply({ content: '이미 해당 메세지에 대한 투표가 진행되었습니다.', ephemeral: true });
         return;
@@ -22,12 +18,14 @@ export const execute = async (interaction) => {
     trialobj[msg.id] = {
         vtMember: [],
         vtA: 0,
-        vtB: 0
+        vtB: 0,
+        msgContent: msg.content || '(내용 없음)',
+        msgAuthor: msg.author
     }
     const avatarURL = msg.author.displayAvatarURL({ format: 'png', dynamic: true, size: 2048 });
     const embed = new EmbedBuilder()
         .setColor('FF0000')
-        .setDescription(msg.content)
+        .setDescription(trialobj[msg.id].msgContent)
         .setAuthor({ name: `${msg.author.username}`, iconURL: avatarURL })
         .setThumbnail('https://i.ibb.co/t4V5qsf/star-icon.png')
         .addFields(
@@ -89,11 +87,11 @@ export const execute = async (interaction) => {
     collector.on('end', async () => {
         const exampleEmbed = new EmbedBuilder()
             .setColor('FF0000')
-            .setDescription(msg.content)
-            .setAuthor({ name: `${msg.author.username}`, iconURL: avatarURL })
+            .setDescription(trialobj[msg.id].msgContent)
+            .setAuthor({ name: `${trialobj[msg.id].msgAuthor.username}`, iconURL: avatarURL })
             .setThumbnail('https://i.ibb.co/t4V5qsf/star-icon.png')
             .addFields(
-                { name: `${msg.author.username} 님에 대한 약식 재판 결과`, value: ' ' },
+                { name: `${trialobj[msg.id].msgAuthor.username} 님에 대한 약식 재판 결과`, value: ' ' },
                 { name: '찬성표', value: String(trialobj[msg.id].vtA), inline: true },
                 { name: '반대표', value: String(trialobj[msg.id].vtB), inline: true },)
             .setFooter({ text: '투표가 끝났습니다.' })
