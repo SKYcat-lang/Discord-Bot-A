@@ -1,5 +1,7 @@
 {
     "prefix" : "!",
-    "TOKEN" : "X",
-    "clientId" : "934128483121131520"
+    "TOKEN" : "x",
+    "clientId" : "934128483121131520",
+    "API_KEY" : "x",
+    "API_PORT" : "3000"
 }
