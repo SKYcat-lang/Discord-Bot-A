@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ContextMenuCommandBuilder, ApplicationCommandType, StringSelectMenuBuilder } from 'discord.js';
 import axios from 'axios';
-const API_KEY = '8A159EA0-32D6-4960-81EB-C8F9FC3A940D';
+const API_KEY = '';
 
 let trialobj = {};
 const adminID = '604561235442401280';
