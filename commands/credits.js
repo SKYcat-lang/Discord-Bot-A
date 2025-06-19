@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import axios from 'axios'; // axios 모듈을 임포트해야 합니다.
-const API_KEY = '8A159EA0-32D6-4960-81EB-C8F9FC3A940D';
+const API_KEY = '';
 
 export const data = new SlashCommandBuilder()
     .setName('크레딧')
