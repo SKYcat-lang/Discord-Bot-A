@@ -1,7 +1,7 @@
 import { ContextMenuCommandBuilder, ApplicationCommandType, EmbedBuilder } from 'discord.js';
 import axios from 'axios';
 const userLog = {};
-const API_KEY = '8A159EA0-32D6-4960-81EB-C8F9FC3A940D';
+const API_KEY = '';
 
 export const data = new ContextMenuCommandBuilder()
     .setName('Recommend Post')
