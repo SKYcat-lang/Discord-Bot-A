@@ -23,7 +23,7 @@ const adminID = "604561235442401280";
 // ======================
 class trialClass {
   constructor(Author, Content) {
-    this.vtMember = [];
+    this.vtMember = { yes: [], no: [] }; // ✅ 찬성/반대 구분 저장
     this.vtA = 0;
     this.vtB = 0;
     this.msgContent = Content || "(내용 없음)";
@@ -156,7 +156,11 @@ export const execute = async (interaction) => {
   // 🔸 버튼 클릭 로직
   // ======================
   const handleButtonInteraction = async (interactionCollect, msgID) => {
-    if (!trialobj[msg.id]?.vtMember) {
+    const userId = interactionCollect.user.id;
+    const activity = userActivity.get(userId);
+    const oneHour = 60 * 60 * 1000;
+
+    if (!trialobj[msgID]?.vtMember) {
       await interactionCollect.reply({
         content: "유효하지 않은 투표입니다.",
         ephemeral: true,
@@ -164,31 +168,30 @@ export const execute = async (interaction) => {
       return;
     }
 
-    const userId = interactionCollect.user.id;
-    const activity = userActivity.get(userId);
-    const oneHour = 60 * 60 * 1000;
-
-    // 최근 채팅 기록 없거나 오래된 경우
+    // 최근 1시간 내 활동 검사
     if (!activity || Date.now() - activity.time > oneHour) {
       await interactionCollect.reply({
-        content: "⏰ 최근 1시간 내 채팅 기록이 없어 투표할 수 없습니다.",
+        content: "최근 1시간 내 채팅 기록이 없어 투표할 수 없습니다.",
         ephemeral: true,
       });
       return;
     }
 
-    // 현재 투표 중 작성된 메시지라면 투표 불가
-    if (activity.flags.includes(msgID)) {
+    // 투표 중에 입력된 메시지라면 거부
+    if (Array.isArray(activity.flags) && activity.flags.includes(msgID)) {
       await interactionCollect.reply({
         content:
-          "⚠️ 이 메시지는 현재 투표 진행 중에 입력된 채팅이라 투표 자격으로 인정되지 않습니다.",
+          "최근 1시간 내 채팅 기록이 없어 투표할 수 없습니다. (투표 도중에 입력된 메시지도 거부됩니다.)",
         ephemeral: true,
       });
       return;
     }
 
     // 이미 투표한 유저
-    if (trialobj[msgID].vtMember.includes(userId)) {
+    if (
+      trialobj[msgID].vtMember.yes.includes(userId) ||
+      trialobj[msgID].vtMember.no.includes(userId)
+    ) {
       userId == adminID
         ? await showControlPanel(interactionCollect, msgID)
         : await interactionCollect.reply({
@@ -198,20 +201,24 @@ export const execute = async (interaction) => {
       return;
     }
 
-    // ✅ 정상 투표
-    interactionCollect.customId === msgID + "/yes"
-      ? trialobj[msgID].vtA++
-      : trialobj[msgID].vtB++;
+    // ✅ 투표 처리
+    if (interactionCollect.customId === msgID + "/yes") {
+      trialobj[msgID].vtA++;
+      trialobj[msgID].vtMember.yes.push(userId);
+    } else if (interactionCollect.customId === msgID + "/no") {
+      trialobj[msgID].vtB++;
+      trialobj[msgID].vtMember.no.push(userId);
+    } else {
+      console.log("버그났어!", interactionCollect.customId);
+    }
 
-    trialobj[msgID].vtMember.push(userId);
     await interactionCollect.reply({
       content: "투표가 완료되었습니다.",
       ephemeral: true,
     });
 
     console.log(
-      `${userId} → ${msgID} 메시지에 투표`,
-      `찬성:${trialobj[msgID].vtA}, 반대:${trialobj[msgID].vtB}`
+      `[투표] ${userId} → ${msgID} / 찬성:${trialobj[msgID].vtA}, 반대:${trialobj[msgID].vtB}`
     );
   };
 
@@ -219,7 +226,7 @@ export const execute = async (interaction) => {
   // 🔸 선택 메뉴 처리
   // ======================
   const handleSelectMenuInteraction = async (interactionCollect, msgID) => {
-    if (!trialobj[msg.id]?.vtMember) {
+    if (!trialobj[msgID]?.vtMember) {
       await interactionCollect.reply({
         content: "유효하지 않은 투표입니다.",
         ephemeral: true,
@@ -229,19 +236,45 @@ export const execute = async (interaction) => {
 
     const selectedValue = interactionCollect.values[0];
     if (selectedValue === `${msgID}/status`) {
+      const yesList = trialobj[msgID].vtMember.yes.length
+        ? trialobj[msgID].vtMember.yes.map((id) => `<@${id}>`).join(", ")
+        : "없음";
+      const noList = trialobj[msgID].vtMember.no.length
+        ? trialobj[msgID].vtMember.no.map((id) => `<@${id}>`).join(", ")
+        : "없음";
+
       const statusEmbed = new EmbedBuilder()
-        .setTitle("투표 현황")
+        .setColor("2F3136")
+        .setTitle("📊 투표 현황 (관리자)")
         .setDescription(
-          `찬성: ${trialobj[msgID].vtA}, 반대: ${trialobj[msgID].vtB}`
-        );
+          `✅ 찬성: ${trialobj[msgID].vtA}명\n❌ 반대: ${trialobj[msgID].vtB}명`
+        )
+        .addFields(
+          { name: "✅ 찬성한 유저", value: yesList, inline: false },
+          { name: "❌ 반대한 유저", value: noList, inline: false }
+        )
+        .setTimestamp();
+
       await interactionCollect.update({
         embeds: [statusEmbed],
         components: [],
       });
     } else if (selectedValue === `${msgID}/revote`) {
-      const index = trialobj[msgID].vtMember.indexOf(adminID);
-      if (index > -1) {
-        trialobj[msgID].vtMember.splice(index, 1);
+      let removed = false;
+      const yesIdx = trialobj[msgID].vtMember.yes.indexOf(adminID);
+      if (yesIdx > -1) {
+        trialobj[msgID].vtMember.yes.splice(yesIdx, 1);
+        trialobj[msgID].vtA = Math.max(0, trialobj[msgID].vtA - 1);
+        removed = true;
+      }
+      const noIdx = trialobj[msgID].vtMember.no.indexOf(adminID);
+      if (noIdx > -1) {
+        trialobj[msgID].vtMember.no.splice(noIdx, 1);
+        trialobj[msgID].vtB = Math.max(0, trialobj[msgID].vtB - 1);
+        removed = true;
+      }
+
+      if (removed) {
         await interactionCollect.update({
           content: "관리자의 투표가 취소되었습니다. 재투표가 가능합니다.",
           components: [],
@@ -280,8 +313,13 @@ export const execute = async (interaction) => {
         )
         .setFooter({ text: "관리자에 의해 종료되었습니다." })
         .setTimestamp();
+      for (const [uid, data] of userActivity.entries()) {
+        if (Array.isArray(data.flags)) {
+          data.flags = data.flags.filter((f) => f !== msgID);
+        }
+      }
       await interaction.editReply({ embeds: [CUTEmbed], components: [] });
-      delete trialobj[msgID].vtMember;
+      delete trialobj[msgID];
     }
   };
 
@@ -425,8 +463,8 @@ export const execute = async (interaction) => {
       await interaction.editReply({ embeds: [exampleEmbed], components: [] });
     } catch (error) {
       console.error("메세지가 삭제됨", error);
-      delete trialobj[msg.id];
     }
+    delete trialobj[msg.id];
   });
 };
 
