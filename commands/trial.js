@@ -11,8 +11,16 @@ import axios from "axios";
 import config from "../Config.json" assert { type: "json" };
 const API_KEY = config.API_KEY;
 
-let trialobj = {};
+// ======================
+// 🔹 전역 상태
+// ======================
+let trialobj = {}; // 진행중인 투표 객체
+const userActivity = new Map(); // userId → { time, flags: [msgID1, msgID2...] }
 const adminID = "604561235442401280";
+
+// ======================
+// 🔹 클래스
+// ======================
 class trialClass {
   constructor(Author, Content) {
     this.vtMember = [];
@@ -25,6 +33,35 @@ class trialClass {
 
 const isAdmin = (member) => member.permissions.has("ADMINISTRATOR");
 
+// ======================
+// 🔹 유저 메시지 기록 추적
+// ======================
+export const registerMessageTracker = (client) => {
+  client.on("messageCreate", (message) => {
+    if (message.author.bot) return;
+
+    const now = Date.now();
+    const userId = message.author.id;
+
+    // 현재 진행중인 모든 투표 ID 목록 추출
+    const activeTrials = Object.keys(trialobj);
+
+    userActivity.set(userId, {
+      time: now,
+      flags: [...activeTrials], // 🔥 진행중인 모든 투표에 대해 flag 기록
+    });
+
+    // 오래된 기록 정리 (1시간 이상)
+    const oneHour = 60 * 60 * 1000;
+    for (const [id, data] of userActivity.entries()) {
+      if (now - data.time > oneHour) userActivity.delete(id);
+    }
+  });
+};
+
+// ======================
+// 🔹 메인 명령 실행
+// ======================
 export const execute = async (interaction) => {
   if (!interaction.inGuild()) {
     await interaction.reply({
@@ -33,7 +70,8 @@ export const execute = async (interaction) => {
     });
     return;
   }
-  let msg = interaction.targetMessage;
+
+  const msg = interaction.targetMessage;
 
   if (Object.keys(trialobj).includes(msg.id)) {
     await interaction.reply({
@@ -63,25 +101,25 @@ export const execute = async (interaction) => {
     })
     .setFooter({ text: "1분 30초 후에 재판의 결과가 발표됩니다." })
     .setTimestamp();
-  const row = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId(msg.id + "/yes")
-        .setLabel("찬성")
-        .setStyle(ButtonStyle.Success)
-    )
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId(msg.id + "/no")
-        .setLabel("반대")
-        .setStyle(ButtonStyle.Danger)
-    );
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(msg.id + "/yes")
+      .setLabel("찬성")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(msg.id + "/no")
+      .setLabel("반대")
+      .setStyle(ButtonStyle.Danger)
+  );
+
   try {
     await interaction.editReply({ embeds: [embed], components: [row] });
   } catch (error) {
     console.error(error);
     delete trialobj[msg.id];
   }
+
   console.log(msg.id + "에 대한 약식 재판이 시작되었습니다.");
 
   const collector = interaction.channel.createMessageComponentCollector({
@@ -89,10 +127,11 @@ export const execute = async (interaction) => {
     time: 90000,
   });
 
+  // ======================
+  // 🔸 버튼 or 선택 메뉴 처리
+  // ======================
   collector.on("collect", async (interactionCollect) => {
-    // 버튼 눌렀을때
     const msgID = interactionCollect.customId.split("/")[0];
-
     if (!trialobj[msgID]) {
       await interactionCollect.reply({
         content: "이미 종료된 투표입니다.",
@@ -100,8 +139,6 @@ export const execute = async (interaction) => {
       });
       return;
     }
-
-    console.log(trialobj[msgID]?.vtMember);
 
     try {
       if (interactionCollect.isButton()) {
@@ -115,6 +152,9 @@ export const execute = async (interaction) => {
     }
   });
 
+  // ======================
+  // 🔸 버튼 클릭 로직
+  // ======================
   const handleButtonInteraction = async (interactionCollect, msgID) => {
     if (!trialobj[msg.id]?.vtMember) {
       await interactionCollect.reply({
@@ -124,8 +164,32 @@ export const execute = async (interaction) => {
       return;
     }
 
-    if (trialobj[msgID].vtMember.includes(interactionCollect.user.id)) {
-      interactionCollect.user.id == adminID
+    const userId = interactionCollect.user.id;
+    const activity = userActivity.get(userId);
+    const oneHour = 60 * 60 * 1000;
+
+    // 최근 채팅 기록 없거나 오래된 경우
+    if (!activity || Date.now() - activity.time > oneHour) {
+      await interactionCollect.reply({
+        content: "⏰ 최근 1시간 내 채팅 기록이 없어 투표할 수 없습니다.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // 현재 투표 중 작성된 메시지라면 투표 불가
+    if (activity.flags.includes(msgID)) {
+      await interactionCollect.reply({
+        content:
+          "⚠️ 이 메시지는 현재 투표 진행 중에 입력된 채팅이라 투표 자격으로 인정되지 않습니다.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // 이미 투표한 유저
+    if (trialobj[msgID].vtMember.includes(userId)) {
+      userId == adminID
         ? await showControlPanel(interactionCollect, msgID)
         : await interactionCollect.reply({
             content: "이미 투표에 참여하셨습니다.",
@@ -133,29 +197,27 @@ export const execute = async (interaction) => {
           });
       return;
     }
+
+    // ✅ 정상 투표
     interactionCollect.customId === msgID + "/yes"
       ? trialobj[msgID].vtA++
-      : interactionCollect.customId === msgID + "/no"
-      ? trialobj[msgID].vtB++
-      : console.log("버그났어!", interactionCollect.customId);
+      : trialobj[msgID].vtB++;
+
+    trialobj[msgID].vtMember.push(userId);
     await interactionCollect.reply({
       content: "투표가 완료되었습니다.",
       ephemeral: true,
     });
-    trialobj[msgID].vtMember.push(interactionCollect.user.id);
+
     console.log(
-      interactionCollect.user.id,
-      ", ",
-      msgID,
-      "메세지에 투표함!\n",
-      "현재) 찬성:",
-      trialobj[msgID].vtA,
-      "반대:",
-      trialobj[msgID].vtB
+      `${userId} → ${msgID} 메시지에 투표`,
+      `찬성:${trialobj[msgID].vtA}, 반대:${trialobj[msgID].vtB}`
     );
-    console.log(trialobj[msgID].vtMember);
   };
 
+  // ======================
+  // 🔸 선택 메뉴 처리
+  // ======================
   const handleSelectMenuInteraction = async (interactionCollect, msgID) => {
     if (!trialobj[msg.id]?.vtMember) {
       await interactionCollect.reply({
@@ -258,7 +320,17 @@ export const execute = async (interaction) => {
     });
   };
 
+  // ======================
+  // 🔸 투표 종료시 처리
+  // ======================
   collector.on("end", async () => {
+    // 모든 유저의 flag에서 이번 msgID 제거
+    for (const [uid, data] of userActivity.entries()) {
+      if (data.flags.includes(msg.id)) {
+        data.flags = data.flags.filter((f) => f !== msg.id);
+      }
+    }
+
     if (!trialobj[msg.id]?.vtMember) return;
 
     const exampleEmbed = new EmbedBuilder()
@@ -358,6 +430,9 @@ export const execute = async (interaction) => {
   });
 };
 
+// ======================
+// 🔹 커맨드 데이터
+// ======================
 export const data = new ContextMenuCommandBuilder()
   .setName("약식 재판 시도")
   .setType(ApplicationCommandType.Message);
