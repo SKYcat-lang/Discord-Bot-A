@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ContextMenuCommandBuilder, ApplicationCommandType, StringSelectMenuBuilder } from 'discord.js';
 import axios from 'axios';
-const API_KEY = '';
+import config from '../Config.json' assert { type: 'json' };
+const API_KEY = config.API_KEY;
 
 let trialobj = {};
 const adminID = '604561235442401280';
@@ -77,7 +78,7 @@ export const execute = async (interaction) => {
             return;
         }
 
-        console.log(trialobj[msgID].vtMember);
+        console.log(trialobj[msgID]?.vtMember);
 
         try {
             if (interactionCollect.isButton()) {
@@ -93,6 +94,11 @@ export const execute = async (interaction) => {
     })
 
     const handleButtonInteraction = async (interactionCollect, msgID) => {
+        if (!trialobj[msg.id]?.vtMember) {
+            await interactionCollect.reply({ content: '유효하지 않은 투표입니다.', ephemeral: true });
+            return;
+        }
+
         if (trialobj[msgID].vtMember.includes(interactionCollect.user.id)) {
             interactionCollect.user.id == adminID ? await showControlPanel(interactionCollect, msgID) : await interactionCollect.reply({ content: '이미 투표에 참여하셨습니다.', ephemeral: true });
             return;
@@ -105,6 +111,11 @@ export const execute = async (interaction) => {
     }
 
     const handleSelectMenuInteraction = async (interactionCollect, msgID) => {
+        if (!trialobj[msg.id]?.vtMember) {
+            await interactionCollect.reply({ content: '유효하지 않은 투표입니다.', ephemeral: true });
+            return;
+        }
+
         const selectedValue = interactionCollect.values[0];
         if (selectedValue === `${msgID}/status`) {
             const statusEmbed = new EmbedBuilder()
@@ -178,7 +189,7 @@ export const execute = async (interaction) => {
     }
 
     collector.on('end', async () => {
-        if (!trialobj[msg.id].vtMember) return;
+        if (!trialobj[msg.id]?.vtMember) return;
 
         const exampleEmbed = new EmbedBuilder()
             .setColor('FF0000')
@@ -227,7 +238,15 @@ export const execute = async (interaction) => {
             exampleEmbed.addFields({ name: ' ', value: `\`\`해당 채팅에 대한 처벌이 가결되었습니다.\n(소셜 크레딧 ${credit} 차감, 소셜 크레딧: ${SocialCredit-credit})\`\`\nhttps://discord.com/channels/${msg.guild.id}/${msg.channelId}/${msg.id}` })
 
             try {
-                await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
+                if (SocialCredit < 0) {
+                    const k = 0.02;  // 수렴 속도를 조정하는 상수 (적절히 설정)
+                    const timeoutMultiplier = 1200 * (1 - Math.exp(-k * -SocialCredit));  // 로그 함수 기반으로 타임아웃 계산
+                    const timeoutDuration = Math.max(timeoutMultiplier, 210);  // 최소 타임아웃 시간은 3.5분 (210초)으로 설정
+                    await member.timeout((210 + timeoutDuration) * 1000);  // 초 단위로 변환하여 타임아웃 적용
+                }
+                else {
+                    await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
+                }
             } catch (error) {
                 console.error('타임아웃 에러', error);
                 exampleEmbed.addFields({ name: ' ', value: `\`\`그러나 권한 부족으로 타임아웃 할 수 없습니다.\`\`` });
