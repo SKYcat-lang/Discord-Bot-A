@@ -37,7 +37,7 @@ const main = async () => {
     });
 
     const client = new Client({
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
         partials: [Partials.Channel]
     });
 
@@ -56,12 +56,21 @@ const main = async () => {
     });
 
     client.on('interactionCreate', async interaction => {
-        if (!interaction.isCommand()) return;
-        if (!client.commands.has(interaction.commandName)) return;
-
-        const command = client.commands.get(interaction.commandName);
         try {
-            await command.execute(interaction);
+            // 슬래시 명령어 처리
+            if (interaction.isChatInputCommand()) {
+                const command = client.commands.get(interaction.commandName);
+                if (!command) return;
+                await command.execute(interaction);
+                return;
+            }
+            // 컨텍스트 메뉴(메시지/유저) 처리
+            if (interaction.isMessageContextMenuCommand() || interaction.isUserContextMenuCommand()) {
+                const command = client.commands.get(interaction.commandName);
+                if (!command) return;
+                await command.execute(interaction);
+                return;
+            }
         } catch (error) {
             console.error('명령어 실행 오류: ', error);
         }
