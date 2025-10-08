@@ -2,6 +2,7 @@ import { Client, Collection, GatewayIntentBits, Partials, REST, Routes } from 'd
 import fs from 'node:fs';
 import { readFile } from 'fs/promises';
 import api from './api.js';
+import { registerMessageTracker } from './commands/trial.js';
 
 const loadConfig = async () => {
     try {
@@ -43,6 +44,8 @@ const main = async () => {
 
     client.commands = new Collection();
     const commands = await loadCommands(client);
+    
+    registerMessageTracker(client);
 
     client.once('ready', async () => {
         console.log('디스코드 봇이 준비되었습니다.');
