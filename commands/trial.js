@@ -15,7 +15,7 @@ const API_KEY = config.API_KEY;
 // 🔹 전역 상태
 // ======================
 let trialobj = {}; // 진행중인 투표 객체
-const userActivity = new Map(); // userId → { time, flags: [msgID1, msgID2...] }
+const userActivity = new Map(); // userId → { times: number[] }
 const adminID = "604561235442401280";
 
 // ======================
@@ -23,11 +23,12 @@ const adminID = "604561235442401280";
 // ======================
 class trialClass {
   constructor(Author, Content) {
-    this.vtMember = { yes: [], no: [] }; // ✅ 찬성/반대 구분 저장
+    this.vtMember = { yes: [], no: [] };
     this.vtA = 0;
     this.vtB = 0;
     this.msgContent = Content || "(내용 없음)";
     this.msgAuthor = Author;
+    this.startTime = Date.now(); // ✅ 투표 시작 시각
   }
 }
 
@@ -42,19 +43,20 @@ export const registerMessageTracker = (client) => {
 
     const now = Date.now();
     const userId = message.author.id;
-
-    // 현재 진행중인 모든 투표 ID 목록 추출
-    const activeTrials = Object.keys(trialobj);
-
-    userActivity.set(userId, {
-      time: now,
-      flags: [...activeTrials], // 🔥 진행중인 모든 투표에 대해 flag 기록
-    });
-
-    // 오래된 기록 정리 (1시간 이상)
     const oneHour = 60 * 60 * 1000;
+
+    const prev = userActivity.get(userId) || { times: [] };
+    const nextTimes = [...prev.times, now].filter((t) => now - t <= oneHour);
+
+    userActivity.set(userId, { times: nextTimes });
+
+    // (옵션) 맵 자체 청소는 굳이 매번 안 해도 됨. 필요하면 주기적으로 GC // 그렇지만 난 하고 싶은걸.
     for (const [id, data] of userActivity.entries()) {
-      if (now - data.time > oneHour) userActivity.delete(id);
+      const arr = Array.isArray(data.times) ? data.times : [];
+      const last = arr[arr.length - 1] || 0;
+      if (arr.length === 0 || now - last > oneHour * 6) {
+        userActivity.delete(id);
+      }
     }
   });
 };
@@ -91,7 +93,7 @@ export const execute = async (interaction) => {
     size: 2048,
   });
   const embed = new EmbedBuilder()
-    .setColor("FF0000")
+    .setColor(0xff0000)
     .setDescription(trialobj[msg.id].msgContent)
     .setAuthor({ name: `${msg.author.username}`, iconURL: avatarURL })
     .setThumbnail("https://i.ibb.co/t4V5qsf/star-icon.png")
@@ -168,20 +170,24 @@ export const execute = async (interaction) => {
       return;
     }
 
-    // 최근 1시간 내 활동 검사
-    if (!activity || Date.now() - activity.time > oneHour) {
-      await interactionCollect.reply({
-        content: "최근 1시간 내 채팅 기록이 없어 투표할 수 없습니다.",
-        ephemeral: true,
-      });
-      return;
+    // 투표 시작 시각과 유저의 최근 메시지 목록
+    const start = trialobj[msgID].startTime;
+    const times = activity?.times || [];
+
+    // 투표 시작 '이전'에 보낸 가장 최근 메시지 찾기
+    let lastPreVote = null;
+    for (let i = times.length - 1; i >= 0; i--) {
+      if (times[i] <= start) {
+        lastPreVote = times[i];
+        break;
+      }
     }
 
-    // 투표 중에 입력된 메시지라면 거부
-    if (Array.isArray(activity.flags) && activity.flags.includes(msgID)) {
+    // 최근 1시간 내 활동 검사
+    if (!lastPreVote || start - lastPreVote > oneHour) {
       await interactionCollect.reply({
         content:
-          "최근 1시간 내 채팅 기록이 없어 투표할 수 없습니다. (투표 도중에 입력된 메시지도 거부됩니다.)",
+          "투표 시작 __이전__ 1시간 내 채팅 기록이 없어 투표할 수 없습니다.",
         ephemeral: true,
       });
       return;
@@ -201,7 +207,7 @@ export const execute = async (interaction) => {
       return;
     }
 
-    // ✅ 투표 처리
+    // 투표 처리
     if (interactionCollect.customId === msgID + "/yes") {
       trialobj[msgID].vtA++;
       trialobj[msgID].vtMember.yes.push(userId);
@@ -297,7 +303,7 @@ export const execute = async (interaction) => {
         components: [],
       });
       const CUTEmbed = new EmbedBuilder()
-        .setColor("FF0000")
+        .setColor(0xff0000)
         .setDescription(trialobj[msgID].msgContent)
         .setAuthor({
           name: `${trialobj[msgID].msgAuthor.username}`,
@@ -313,11 +319,6 @@ export const execute = async (interaction) => {
         )
         .setFooter({ text: "관리자에 의해 종료되었습니다." })
         .setTimestamp();
-      for (const [uid, data] of userActivity.entries()) {
-        if (Array.isArray(data.flags)) {
-          data.flags = data.flags.filter((f) => f !== msgID);
-        }
-      }
       await interaction.editReply({ embeds: [CUTEmbed], components: [] });
       delete trialobj[msgID];
     }
@@ -362,17 +363,10 @@ export const execute = async (interaction) => {
   // 🔸 투표 종료시 처리
   // ======================
   collector.on("end", async () => {
-    // 모든 유저의 flag에서 이번 msgID 제거
-    for (const [uid, data] of userActivity.entries()) {
-      if (data.flags.includes(msg.id)) {
-        data.flags = data.flags.filter((f) => f !== msg.id);
-      }
-    }
-
     if (!trialobj[msg.id]?.vtMember) return;
 
     const exampleEmbed = new EmbedBuilder()
-      .setColor("FF0000")
+      .setColor(0xff0000)
       .setDescription(trialobj[msg.id].msgContent)
       .setAuthor({
         name: `${trialobj[msg.id].msgAuthor.username}`,
@@ -443,7 +437,7 @@ export const execute = async (interaction) => {
           const timeoutDuration = Math.max(timeoutMultiplier, 210); // 최소 타임아웃 시간은 3.5분 (210초)으로 설정
           await member.timeout((210 + timeoutDuration) * 1000); // 초 단위로 변환하여 타임아웃 적용
         } else {
-          await member.timeout(60000 * 3.5); // 1분 30초 동안 타임아웃
+          await member.timeout(60000 * 3.5); // 3분 30초 동안 타임아웃
         }
       } catch (error) {
         console.error("타임아웃 에러", error);
